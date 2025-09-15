@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Моят Автопарк — Списък</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .car-card { position: relative; }
+    .car-card-buttons { position: absolute; top: 0.5rem; right: 0.5rem; display:flex; gap:0.5rem; z-index:10; }
+    .car-card-buttons button { background-color: #eef2ff; border-radius: .375rem; padding:.25rem .375rem; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; transition:all .15s; color:#4f46e5;}
+    .car-card-buttons button:hover { background-color:#4f46e5; color:white; }
+    .service-entry-buttons button { background:transparent; border:none; cursor:pointer; padding:0; color:#6b7280; }
+    .service-entry-buttons button:hover { color:#4f46e5; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+  <div class="max-w-6xl mx-auto p-6">
+    <h1 class="text-3xl font-bold mb-6 text-center">Моят Автопарк</h1>
+
+    <!-- Add New Car -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-xl font-semibold">Добави нов автомобил</h2>
+        <div class="text-sm text-gray-500">Всички полета са задължителни</div>
+      </div>
+      <form id="car-form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div class="md:col-span-1">
+          <label class="block text-sm font-medium mb-1">Рег. номер</label>
+          <input type="text" id="license" class="p-2 border rounded w-full" required/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">ГТП</label>
+          <input type="date" id="inspection" class="p-2 border rounded w-full" required/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Винетка</label>
+          <input type="date" id="vignette" class="p-2 border rounded w-full" required/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Застраховка</label>
+          <input type="date" id="insurance" class="p-2 border rounded w-full" required/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Пробег (км)</label>
+          <input type="number" id="kilometers" class="p-2 border rounded w-full" required/>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium mb-1">Снимка (по избор)</label>
+          <input type="file" id="car-image" accept="image/*" class="p-2 border rounded w-full"/>
+        </div>
+
+        <div class="md:col-span-3">
+          <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded w-full">Добави</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- KM input -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-2">Въведи километри</h2>
+      <form id="km-form" class="flex flex-col md:flex-row gap-2">
+        <select id="car-select" class="p-2 border rounded w-full md:w-1/2"></select>
+        <input type="number" id="km-value" class="p-2 border rounded w-full md:w-1/2" placeholder="Добави километри" required/>
+        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Запази</button>
+      </form>
+    </div>
+
+    <!-- Service Log Entry -->
+    <div class="bg-white p-4 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-2">Добави сервизен запис</h2>
+      <form id="service-form" class="grid grid-cols-1 md:grid-cols-3 gap-2">
+        <select id="service-car-select" class="p-2 border rounded w-full" required></select>
+        <input type="text" placeholder="Сменена част" id="service-part" class="p-2 border rounded" required />
+        <input type="number" placeholder="Км" id="service-km" class="p-2 border rounded" required />
+        <input type="date" placeholder="Дата" id="service-date" class="p-2 border rounded" required />
+        <input type="text" placeholder="Забележка" id="service-note" class="p-2 border rounded" />
+        <button class="bg-purple-600 text-white px-4 py-2 rounded" type="submit">Добави</button>
+      </form>
+    </div>
+
+    <!-- Export / Import -->
+    <div class="bg-white p-4 rounded shadow mb-6 flex flex-wrap gap-4">
+      <button id="export-btn" class="bg-green-700 text-white px-4 py-2 rounded">Експорт</button>
+      <button id="import-btn" class="bg-blue-700 text-white px-4 py-2 rounded">Импорт</button>
+      <input type="file" id="import-file" accept="application/json" class="hidden" />
+    </div>
+
+    <!-- Car list -->
+    <div id="car-list" class="grid gap-4"></div>
+
+  </div>
+
+  <script>
+    // Notification permission
+    if ('Notification' in window && Notification.permission !== 'granted') {
+      Notification.requestPermission().catch(()=>{});
+    }
+
+    function notify(title, body) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        try { new Notification(title, { body }); } catch(e) {}
+      }
+    }
+
+    function getCars() {
+      return JSON.parse(localStorage.getItem('cars') || '[]');
+    }
+    function saveCars(cars) {
+      localStorage.setItem('cars', JSON.stringify(cars));
+    }
+
+    function isDateNear(dateString) {
+      if (!dateString) return false;
+      const target = new Date(dateString + 'T00:00:00');
+      const today = new Date();
+      const diff = (target - today) / (1000 * 60 * 60 * 24);
+      return diff <= 7 && diff >= 0;
+    }
+
+    function renderCarDropdowns() {
+      const cars = getCars();
+      const carSelect = document.getElementById('car-select');
+      const serviceCarSelect = document.getElementById('service-car-select');
+      carSelect.innerHTML = '';
+      serviceCarSelect.innerHTML = '';
+      cars.forEach(car => {
+        const o1 = document.createElement('option'); o1.value = car.license; o1.textContent = car.license;
+        const o2 = document.createElement('option'); o2.value = car.license; o2.textContent = car.license;
+        carSelect.appendChild(o1); serviceCarSelect.appendChild(o2);
+      });
+    }
+
+    function renderCars() {
+      const cars = getCars();
+      const carList = document.getElementById('car-list');
+      carList.innerHTML = '';
+
+      cars.forEach((car, index) => {
+        const inspectionDue = isDateNear(car.inspection);
+        const vignetteDue = isDateNear(car.vignette);
+        const insuranceDue = isDateNear(car.insurance);
+
+        const kmCurrent = Number(car.kilometers || 0);
+        const lastOil = Number(car.lastOilChange || 0);
+        const lastService = Number(car.lastService || 0);
+
+        const kmToOil = 15000 - (kmCurrent - lastOil);
+        const kmToService = 50000 - (kmCurrent - lastService);
+
+        if (kmToOil <= 0) notify(car.license, "Необходимо е смяна на масло.");
+        if (kmToService <= 0) notify(car.license, "Необходимо е обслужване.");
+        if (inspectionDue) notify(car.license, "Изтича ГТП до 7 дни.");
+        if (vignetteDue) notify(car.license, "Изтича винетка до 7 дни.");
+        if (insuranceDue) notify(car.license, "Изтича застраховка до 7 дни.");
+
+        const card = document.createElement('div');
+        card.className = 'bg-white p-4 rounded shadow car-card';
+
+        // build service list html
+        const serviceHtml = (car.serviceLog && car.serviceLog.length > 0) ?
+          car.serviceLog.map((entry, idx) => `
+            <li class="service-entry flex items-center justify-between" data-license="${car.license}" data-index="${idx}">
+              <div class="text-sm">${entry.date} – ${entry.part} (${entry.km} км)${entry.note ? " — " + entry.note : ""}</div>
+              <div class="service-entry-buttons">
+                <button class="edit-service-btn" title="Коригирай" data-license="${car.license}" data-index="${idx}" aria-label="Коригирай сервизен запис">✏️</button>
+                <button class="delete-service-btn" title="Изтрий" data-license="${car.license}" data-index="${idx}" aria-label="Изтрий сервизен запис">🗑️</button>
+              </div>
+            </li>`).join('') :
+          '<li class="text-sm text-gray-500">Няма записи</li>';
+
+        card.innerHTML = `
+          <div class="car-card-buttons">
+            <button class="edit-km-btn" data-license="${car.license}" title="Коригирай километри">✏️</button>
+            <button class="delete-car-btn" data-license="${car.license}" title="Изтрий кола">🗑️</button> 
+           <BR> <BR>
+		  </div>
+		  
+
+          <div class="md:flex md:items-center md:gap-4">
+            <div class="w-56 h-56 flex items-center justify-center bg-gray-100 rounded overflow-hidden">
+              <img src="${car.image || 'https://via.placeholder.com/320x180?text=No+Image'}" alt="photo" class="w-full h-full object-cover">
+            </div>
+
+            <div class="flex-1 mt-3 md:mt-0 ">
+			
+              <div class="flex items-center justify-between">
+			  
+                <h3 class="text-xl font-bold">${car.license}</h3>
+                
+              </div>
+
+              <div class="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                <div class="${inspectionDue ? 'text-red-600 font-semibold' : ''}">ГТП: ${car.inspection || '-'}</div>
+                <div class="${vignetteDue ? 'text-red-600 font-semibold' : ''}">Винетка: ${car.vignette || '-'}</div>
+                <div class="${insuranceDue ? 'text-red-600 font-semibold' : ''}">Застраховка: ${car.insurance || '-'}</div>
+              </div>
+
+              <div class="mt-2 text-sm">
+                <span class="${kmToOil <= 0 ? 'text-orange-600 font-semibold' : ''}">Км до смяна масло: ${Math.max(0, kmToOil)}</span>
+                <button class="reset-oil-btn ml-2 text-indigo-600" data-license="${car.license}" title="Ресетни маслото">⟳</button>
+                <span class="ml-4 ${kmToService <= 0 ? 'text-orange-600 font-semibold' : ''}">Км до обслужване: ${Math.max(0, kmToService)}</span>
+                <button class="reset-service-btn ml-2 text-indigo-600" data-license="${car.license}" title="Ресетни обслужването">⟳</button>
+              </div>
+
+              <p class="mt-2 text-sm">Километри: <strong>${kmCurrent}</strong></p>
+
+              <h4 class="font-semibold mt-3">Сервизна книжка:</h4>
+              <ul class="list-disc pl-5 mt-1">${serviceHtml}</ul>
+            </div>
+			<div class="space-x-1 items-left-side"> <BR> <BR>
+                  <a href="car.html?license=${encodeURIComponent(car.license)}" target="_blank" class="bg-indigo-600 text-white px-8 py-3 rounded ">Детайли</a>
+                </div>
+          </div>
+        `;
+
+        carList.appendChild(card);
+      });
+
+      // attach listeners via delegation
+    }
+
+    // Delegated event handling
+    document.addEventListener('click', (e) => {
+      const editKmBtn = e.target.closest('.edit-km-btn');
+      if (editKmBtn) {
+        const license = editKmBtn.dataset.license;
+        const newKm = prompt('Въведи нови километри за ' + license);
+        if (newKm === null) return;
+        if (isNaN(newKm) || Number(newKm) < 0) return alert('Невалидни километри');
+        const cars = getCars();
+        const car = cars.find(c => c.license === license);
+        if (car) { car.kilometers = Number(newKm); saveCars(cars); renderCarDropdowns(); renderCars(); }
+        return;
+      }
+
+      const deleteCarBtn = e.target.closest('.delete-car-btn');
+      if (deleteCarBtn) {
+        const license = deleteCarBtn.dataset.license;
+        if (!confirm('Сигурен ли си, че искаш да изтриеш колата ' + license + '?')) return;
+        let cars = getCars();
+        cars = cars.filter(c => c.license !== license);
+        saveCars(cars);
+        renderCarDropdowns();
+        renderCars();
+        return;
+      }
+
+      const resetOilBtn = e.target.closest('.reset-oil-btn');
+      if (resetOilBtn) {
+        const license = resetOilBtn.dataset.license;
+        const cars = getCars();
+        const car = cars.find(c => c.license === license);
+        if (car) { car.lastOilChange = Number(car.kilometers || 0); saveCars(cars); renderCars(); }
+        return;
+      }
+
+      const resetServiceBtn = e.target.closest('.reset-service-btn');
+      if (resetServiceBtn) {
+        const license = resetServiceBtn.dataset.license;
+        const cars = getCars();
+        const car = cars.find(c => c.license === license);
+        if (car) { car.lastService = Number(car.kilometers || 0); saveCars(cars); renderCars(); }
+        return;
+      }
+
+      const editServiceBtn = e.target.closest('.edit-service-btn');
+      if (editServiceBtn) {
+        const license = editServiceBtn.dataset.license;
+        const idx = Number(editServiceBtn.dataset.index);
+        const cars = getCars();
+        const car = cars.find(c => c.license === license);
+        if (!car) return;
+        const entry = car.serviceLog && car.serviceLog[idx];
+        if (!entry) return;
+        const newPart = prompt('Коригирай сменената част', entry.part);
+        if (newPart === null) return;
+        const newKm = prompt('Коригирай километри', entry.km);
+        if (newKm === null || isNaN(newKm) || Number(newKm) < 0) return alert('Невалидни километри');
+        const newDate = prompt('Коригирай дата (YYYY-MM-DD)', entry.date);
+        if (newDate === null || !/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return alert('Въведи валидна дата ГГГГ-ММ-ДД');
+        const newNote = prompt('Коригирай забележка', entry.note || '');
+        entry.part = newPart; entry.km = Number(newKm); entry.date = newDate; entry.note = newNote;
+        saveCars(cars); renderCars(); return;
+      }
+
+      const deleteServiceBtn = e.target.closest('.delete-service-btn');
+      if (deleteServiceBtn) {
+        if (!confirm('Сигурен ли си, че искаш да изтриеш този сервизен запис?')) return;
+        const license = deleteServiceBtn.dataset.license;
+        const idx = Number(deleteServiceBtn.dataset.index);
+        const cars = getCars();
+        const car = cars.find(c => c.license === license);
+        if (!car) return;
+        car.serviceLog.splice(idx, 1);
+        saveCars(cars);
+        renderCars();
+        return;
+      }
+    });
+
+    // Forms handling
+    document.getElementById('car-form').addEventListener('submit', function(evt) {
+      evt.preventDefault();
+      const license = document.getElementById('license').value.trim().toUpperCase();
+      const inspection = document.getElementById('inspection').value;
+      const vignette = document.getElementById('vignette').value;
+      const insurance = document.getElementById('insurance').value;
+      const kilometers = Number(document.getElementById('kilometers').value);
+      const fileInput = document.getElementById('car-image');
+      const cars = getCars();
+
+      if (!license || !inspection || !vignette || !insurance || isNaN(kilometers)) {
+        alert('Моля попълнете всички полета коректно.');
+        return;
+      }
+      if (cars.some(c => c.license === license)) {
+        alert('Автомобил с този регистрационен номер вече съществува.');
+        return;
+      }
+
+      const form = document.getElementById('car-form');
+      if (fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+          cars.push({
+            license, inspection, vignette, insurance, kilometers,
+            lastOilChange: kilometers, lastService: kilometers, serviceLog: [], image: ev.target.result
+          });
+          saveCars(cars);
+          form.reset();
+          renderCarDropdowns(); renderCars();
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+      } else {
+        cars.push({
+          license, inspection, vignette, insurance, kilometers,
+          lastOilChange: kilometers, lastService: kilometers, serviceLog: [], image: ''
+        });
+        saveCars(cars);
+        form.reset();
+        renderCarDropdowns(); renderCars();
+      }
+    });
+
+    document.getElementById('km-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const license = document.getElementById('car-select').value;
+      const kmToAdd = Number(document.getElementById('km-value').value);
+      if (!license || isNaN(kmToAdd) || kmToAdd < 0) return alert('Моля въведете валидни данни.');
+      const cars = getCars();
+      const car = cars.find(c => c.license === license);
+      if (!car) return alert('Колата не е намерена.');
+      car.kilometers = Number(car.kilometers || 0) + kmToAdd;
+      saveCars(cars);
+      e.target.reset();
+      renderCars();
+    });
+
+    document.getElementById('service-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const license = document.getElementById('service-car-select').value;
+      const part = document.getElementById('service-part').value.trim();
+      const km = Number(document.getElementById('service-km').value);
+      const date = document.getElementById('service-date').value;
+      const note = document.getElementById('service-note').value.trim();
+      if (!license || !part || isNaN(km) || !date) return alert('Моля попълнете всички задължителни полета.');
+      const cars = getCars();
+      const car = cars.find(c => c.license === license);
+      if (!car) return alert('Колата не е намерена.');
+      car.serviceLog = car.serviceLog || [];
+      car.serviceLog.push({ part, km: Number(km), date, note });
+      saveCars(cars);
+      e.target.reset();
+      renderCars();
+    });
+
+    // Export / Import
+    document.getElementById('export-btn').addEventListener('click', () => {
+      const dataStr = JSON.stringify(getCars(), null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = "fleet_data_export.json"; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+    });
+
+    document.getElementById('import-btn').addEventListener('click', () => document.getElementById('import-file').click());
+    document.getElementById('import-file').addEventListener('change', (e) => {
+      const file = e.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const imported = JSON.parse(ev.target.result);
+          if (!Array.isArray(imported)) throw new Error("Невалиден формат");
+          saveCars(imported); renderCarDropdowns(); renderCars(); alert("Импортирано успешно");
+        } catch(err) { alert("Грешка при импорт: "+err.message); }
+      };
+      reader.readAsText(file);
+    });
+
+    // Инициализация
+    renderCarDropdowns(); renderCars();
+	
+	
+	
+  </script>
+</body>
+</html>

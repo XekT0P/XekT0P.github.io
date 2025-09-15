@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Детайли за автомобил</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .action-btn { display:inline-flex; align-items:center; gap:.5rem; padding:.4rem .6rem; border-radius:.5rem; cursor:pointer; }
+     .car-card { position: relative; }
+    .car-card-buttons { position: absolute; top: 0.5rem; right: 0.5rem; display:flex; gap:0.5rem; z-index:10; }
+    .car-card-buttons button { background-color: #eef2ff; border-radius: .375rem; padding:.25rem .375rem; cursor:pointer; border:none; display:flex; align-items:center; justify-content:center; width:2.2rem; height:2.2rem; transition:all .15s; color:#4f46e5;}
+    .car-card-buttons button:hover { background-color:#4f46e5; color:white; }
+    .service-entry-buttons button { background:transparent; border:none; cursor:pointer; padding:0; color:#6b7280; }
+    .service-entry-buttons button:hover { color:#4f46e5; }
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 p-6">
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded shadow">
+				<div class="space-x-1 items-left-side">
+                  <a href="index.html" target="_blank" class="bg-indigo-600 text-white px-8 py-3 rounded ">Назад към списъка</a>
+                </div>
+    <div id="notfound" class="hidden text-center py-8 text-red-600 font-semibold"></div>
+
+    <div id="car-wrap" class="mt-4 hidden">
+      <div class="md:flex md:gap-6 items-start">
+        <div class="w-full md:w-1/3">
+          <img id="car-photo" src="" alt="Car" class="w-full h-56 object-cover rounded-lg border" />
+          <label class="mt-3 block text-sm font-medium">Смени снимка</label>
+          <input type="file" id="change-image" accept="image/*" class="mt-1" />
+        </div>
+        <div class="flex-1">
+          <div class="flex items-center justify-between">
+            <h1 id="car-title" class="text-2xl font-bold"></h1>
+            <div class="flex gap-2">
+              <button id="edit-basic" class="action-btn bg-yellow-100 text-yellow-800">Редактирай</button>
+              <button id="delete-car" class="action-btn bg-red-100 text-red-800">Изтрий</button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+            <div class="p-3 border rounded">
+              <div class="font-semibold">Километри</div>
+              <div class="flex items-center justify-between mt-1">
+                <div id="car-km" class="text-lg font-medium"></div>
+                <button id="edit-km" class="text-indigo-600">✏️</button>
+              </div>
+            </div>
+
+            <div class="p-3 border rounded">
+              <div class="font-semibold">ГТП</div>
+              <div class="mt-1 flex items-center justify-between">
+                <div id="car-inspection"></div>
+                <button id="edit-inspection" class="text-indigo-600">✏️</button>
+              </div>
+            </div>
+
+            <div class="p-3 border rounded">
+              <div class="font-semibold">Винетка</div>
+              <div class="mt-1 flex items-center justify-between">
+                <div id="car-vignette"></div>
+                <button id="edit-vignette" class="text-indigo-600">✏️</button>
+              </div>
+            </div>
+
+            <div class="p-3 border rounded">
+              <div class="font-semibold">Застраховка</div>
+              <div class="mt-1 flex items-center justify-between">
+                <div id="car-insurance"></div>
+                <button id="edit-insurance" class="text-indigo-600">✏️</button>
+              </div>
+            </div>
+
+            <div class="p-3 border rounded">
+              <div class="font-semibold">Км до смяна масло</div>
+              <div id="car-km-oil" class="mt-1"></div>
+              <button id="reset-oil" class="mt-2 text-sm text-indigo-600">Ресетни ⟳</button>
+            </div>
+
+            <div class="p-3 border rounded">
+              <div class="font-semibold">Км до обслужване</div>
+              <div id="car-km-service" class="mt-1"></div>
+              <button id="reset-service" class="mt-2 text-sm text-indigo-600">Ресетни ⟳</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-6">
+        <h2 class="text-lg font-semibold mb-2">Сервизни записи</h2>
+        <table class="min-w-full text-sm border-t border-b">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="p-2 text-left">Дата</th>
+              <th class="p-2 text-left">Част</th>
+              <th class="p-2 text-left">Км</th>
+              <th class="p-2 text-left">Бележка</th>
+              <th class="p-2 text-left">Действия</th>
+            </tr>
+          </thead>
+          <tbody id="service-table" class="divide-y"></tbody>
+        </table>
+
+        <form id="add-service-form" class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-2 items-end">
+          <input type="date" id="add-service-date" class="p-2 border rounded" required>
+          <input type="text" id="add-service-part" placeholder="Сменена част" class="p-2 border rounded" required>
+          <input type="number" id="add-service-km" placeholder="Км" class="p-2 border rounded" required>
+          <input type="text" id="add-service-note" placeholder="Бележка" class="p-2 border rounded">
+          <div class="md:col-span-4">
+            <button type="submit" class="mt-2 bg-green-600 text-white px-4 py-2 rounded">Добави сервизен запис</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    function getCars() { return JSON.parse(localStorage.getItem('cars') || '[]'); }
+    function saveCars(cars) { localStorage.setItem('cars', JSON.stringify(cars)); }
+    function isDateNear(dateString) {
+      if (!dateString) return false;
+      const target = new Date(dateString + 'T00:00:00'); const today = new Date(); const diff = (target - today)/(1000*60*60*24);
+      return diff <= 7 && diff >= 0;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const license = params.get('license');
+    const notfound = document.getElementById('notfound');
+    const wrap = document.getElementById('car-wrap');
+
+    if (!license) {
+      notfound.textContent = 'Липсва регистрационен номер в URL.'; notfound.classList.remove('hidden');
+    } else {
+      const cars = getCars();
+      const carIndex = cars.findIndex(c => c.license === license);
+      if (carIndex === -1) {
+        notfound.textContent = 'Колата не е намерена.'; notfound.classList.remove('hidden');
+      } else {
+        wrap.classList.remove('hidden');
+        const car = cars[carIndex];
+
+        // Render basic info
+        document.getElementById('car-title').textContent = car.license;
+        document.getElementById('car-photo').src = car.image || 'https://via.placeholder.com/800x450?text=No+Image';
+        document.getElementById('car-km').textContent = car.kilometers || 0;
+        document.getElementById('car-inspection').textContent = car.inspection || '-';
+        document.getElementById('car-vignette').textContent = car.vignette || '-';
+        document.getElementById('car-insurance').textContent = car.insurance || '-';
+
+        const kmCurrent = Number(car.kilometers || 0);
+        const lastOil = Number(car.lastOilChange || 0);
+        const lastService = Number(car.lastService || 0);
+        const kmToOil = 15000 - (kmCurrent - lastOil);
+        const kmToService = 50000 - (kmCurrent - lastService);
+
+        document.getElementById('car-km-oil').textContent = Math.max(0, kmToOil);
+        document.getElementById('car-km-service').textContent = Math.max(0, kmToService);
+
+        // Service table render
+        function renderServiceTable() {
+          const tbody = document.getElementById('service-table');
+          tbody.innerHTML = '';
+          (car.serviceLog || []).forEach((entry, idx) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="p-2">${entry.date}</td>
+              <td class="p-2">${entry.part}</td>
+              <td class="p-2">${entry.km}</td>
+              <td class="p-2">${entry.note || ''}</td>
+              <td class="p-2">
+                <button data-idx="${idx}" class="edit service-edit p-2 rounded bg-yellow-100">✏️</button>
+                <button data-idx="${idx}" class="delete service-delete p-2 rounded bg-red-100">🗑️</button>
+              </td>
+            `;
+            tbody.appendChild(tr);
+          });
+          if (!car.serviceLog || car.serviceLog.length === 0) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="p-3 text-sm text-gray-500" colspan="5">Няма записи</td>`;
+            tbody.appendChild(tr);
+          }
+        }
+        renderServiceTable();
+
+        // Change image
+        document.getElementById('change-image').addEventListener('change', function(e){
+          const f = e.target.files[0]; if(!f) return;
+          const r = new FileReader(); r.onload = function(ev){ car.image = ev.target.result; saveCars(cars); document.getElementById('car-photo').src = car.image; };
+          r.readAsDataURL(f);
+        });
+
+        // Edit buttons (kilometers and dates)
+        document.getElementById('edit-km').addEventListener('click', function(){
+          const newKm = prompt('Въведи километри', car.kilometers);
+          if (newKm === null) return;
+          if (isNaN(newKm) || Number(newKm) < 0) return alert('Невалидни километри');
+          car.kilometers = Number(newKm); saveCars(cars); document.getElementById('car-km').textContent = car.kilometers;
+          // update km to oil/service
+          const kmCurrent = Number(car.kilometers || 0); const lastOil = Number(car.lastOilChange || 0); const lastService = Number(car.lastService || 0);
+          document.getElementById('car-km-oil').textContent = Math.max(0, 15000 - (kmCurrent - lastOil));
+          document.getElementById('car-km-service').textContent = Math.max(0, 50000 - (kmCurrent - lastService));
+        });
+
+        document.getElementById('edit-inspection').addEventListener('click', function(){
+          const newDate = prompt('Въведи нова дата за ГТП (ГГГГ-ММ-ДД)', car.inspection);
+          if (!newDate) return;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return alert('Моля въведи дата в формат ГГГГ-ММ-ДД');
+          car.inspection = newDate; saveCars(cars); document.getElementById('car-inspection').textContent = car.inspection;
+        });
+
+        document.getElementById('edit-vignette').addEventListener('click', function(){
+          const newDate = prompt('Въведи нова дата за винетка (ГГГГ-ММ-ДД)', car.vignette);
+          if (!newDate) return;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return alert('Моля въведи дата в формат ГГГГ-ММ-ДД');
+          car.vignette = newDate; saveCars(cars); document.getElementById('car-vignette').textContent = car.vignette;
+        });
+
+        document.getElementById('edit-insurance').addEventListener('click', function(){
+          const newDate = prompt('Въведи нова дата за застраховка (ГГГГ-ММ-ДД)', car.insurance);
+          if (!newDate) return;
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) return alert('Моля въведи дата в формат ГГГГ-ММ-ДД');
+          car.insurance = newDate; saveCars(cars); document.getElementById('car-insurance').textContent = car.insurance;
+        });
+
+        // Reset oil / service
+        document.getElementById('reset-oil').addEventListener('click', function(){
+          car.lastOilChange = Number(car.kilometers || 0); saveCars(cars); document.getElementById('car-km-oil').textContent = Math.max(0, 15000 - (Number(car.kilometers||0) - Number(car.lastOilChange||0)));
+        });
+        document.getElementById('reset-service').addEventListener('click', function(){
+          car.lastService = Number(car.kilometers || 0); saveCars(cars); document.getElementById('car-km-service').textContent = Math.max(0, 50000 - (Number(car.kilometers||0) - Number(car.lastService||0)));
+        });
+
+        // Delete car from this page
+        document.getElementById('delete-car').addEventListener('click', function(){
+          if (!confirm('Сигурни ли сте че искате да изтриете '+car.license+'?')) return;
+          cars.splice(carIndex, 1); saveCars(cars); window.location.href = 'index.html';
+        });
+
+        // Service add
+        document.getElementById('add-service-form').addEventListener('submit', function(e){
+          e.preventDefault();
+          const date = document.getElementById('add-service-date').value;
+          const part = document.getElementById('add-service-part').value.trim();
+          const km = Number(document.getElementById('add-service-km').value);
+          const note = document.getElementById('add-service-note').value.trim();
+          if (!date || !part || isNaN(km)) return alert('Попълнете полетата коректно');
+          car.serviceLog = car.serviceLog || [];
+          car.serviceLog.push({ date, part, km: Number(km), note });
+          saveCars(cars); renderServiceTable(); e.target.reset();
+        });
+
+        // delegate edit/delete in service table
+        document.getElementById('service-table').addEventListener('click', function(e){
+          const editBtn = e.target.closest('.service-edit');
+          if (editBtn) {
+            const idx = Number(editBtn.dataset.idx);
+            const entry = car.serviceLog[idx];
+            if (!entry) return;
+            const newDate = prompt('Коригирай дата', entry.date); if (newDate===null) return;
+            const newPart = prompt('Коригирай част', entry.part); if (newPart===null) return;
+            const newKm = prompt('Коригирай км', entry.km); if (newKm===null || isNaN(newKm)) return alert('Невалиден км');
+            const newNote = prompt('Коригирай бележка', entry.note || ''); if (newNote===null) return;
+            entry.date = newDate; entry.part = newPart; entry.km = Number(newKm); entry.note = newNote;
+            saveCars(cars); renderServiceTable();
+            return;
+          }
+          const delBtn = e.target.closest('.service-delete');
+          if (delBtn) {
+            const idx = Number(delBtn.dataset.idx);
+            if (!confirm('Изтриване на запис?')) return;
+            car.serviceLog.splice(idx, 1); saveCars(cars); renderServiceTable();
+            return;
+          }
+        });
+
+        // small notification for near dates
+        if (isDateNear(car.inspection)) alert('Внимание: ГТП изтича скоро: ' + car.inspection);
+        if (isDateNear(car.vignette)) alert('Внимание: Винетка изтича скоро: ' + car.vignette);
+        if (isDateNear(car.insurance)) alert('Внимание: Застраховка изтича скоро: ' + car.insurance);
+      }
+    }
+  </script>
+</body>
+</html>
